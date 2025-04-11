@@ -5,12 +5,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.edge.service import Service
 import time
 import random
+import ddddocr  # 导入 ddddocr 库用于验证码识别
 
-# msedgedriver 的路径
+# 初始化 WebDriver 和 ddddocr
 edge_service = Service("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedgedriver.exe")
-
-# 初始化 WebDriver
 driver = webdriver.Edge(service=edge_service)
+ocr = ddddocr.DdddOcr()  # 创建 OCR 对象
 
 def select_dropdown_by_name(driver, dropdown_name, option_value):
     """
@@ -26,7 +26,7 @@ def select_dropdown_by_name(driver, dropdown_name, option_value):
         )
         print(f"找到下拉框: {dropdown_name}")
 
-        #设置 <select> 的值
+        # 设置 <select> 的值
         driver.execute_script(f"document.getElementsByName('{dropdown_name}')[0].value = '{option_value}';")
         selected_value = driver.execute_script(f"return document.getElementsByName('{dropdown_name}')[0].value;")
         print(f"已选择下拉框 {dropdown_name}: 值为 {selected_value}")
@@ -51,22 +51,23 @@ try:
     )
     password_input.send_keys("gprbEdYf7xt3!V5")  # 替换为实际密码
 
-    # 提示用户手动输入验证码
+    # 自动识别验证码
     captcha_image_element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "veriyCodeImg"))  # 定位验证码图片元素
     )
-    print("请查看验证码图片并手动输入验证码：")
     captcha_image_element.screenshot("captcha.png")  # 截图保存验证码图片
-    print("验证码图片已保存为 captcha.png，请查看。")
+    print("验证码图片已保存为 captcha.png")
 
-    # 等待用户输入验证码
-    captcha_value = input("请输入验证码：").strip()
+    with open("captcha.png", "rb") as f:
+        img_bytes = f.read()
+    captcha_text = ocr.classification(img_bytes)  # 使用 ddddocr 进行验证码识别
+    print(f"识别到的验证码: {captcha_text}")
 
     # 输入验证码
     captcha_input = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "veriyCode"))  
+        EC.presence_of_element_located((By.ID, "veriyCode"))
     )
-    captcha_input.send_keys(captcha_value)
+    captcha_input.send_keys(captcha_text.strip())  # 输入识别结果
 
     # 点击登录按钮
     login_button = WebDriverWait(driver, 10).until(
@@ -77,7 +78,7 @@ try:
     time.sleep(5)  # 等待登录完成
 
     # ===================第二步===================
-    while True:  
+    while True:
         try:
             # 查找页面中的第一个“办理”按钮
             handle_button = WebDriverWait(driver, 10).until(
